@@ -1,5 +1,4 @@
 
-
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = F,
                       results = "hide")
@@ -16,7 +15,7 @@ library(dplyr)
 ```{r include=FALSE}
 df <- read.csv(file.choose())
 ```
-#####Project Overview:
+##### Project Overview:
 To make comprehensive bike usage predictions, generally we took five steps to complete our regression analysis: 
 1) Clean data. 
 2) Analyze the validity of the initial regression model by reflecting on five major assumptions. 
@@ -25,11 +24,11 @@ To make comprehensive bike usage predictions, generally we took five steps to co
 5) Based on the new regression model, we intepret the coefficient in the regression model and give some recommendations. 
 For the purpose of concision, we hide the output chart in this report. The chart can be shown by deleting 'include=FALSE' at the beginning of every R chunk.
 
-#####1.Clean the data
+##### 1.Clean the data
 We calculate correlation between working days and the count of registered users and total users for two reasons:   1) there is a strong positive correlation between working day and count of registered users, whereas the correlation of working day and count of total is insignificant. In this case, to make full use of the variables and make more accurate predictions, we select count of registered users as our dependent variables. 2) for the business purpose, we focused on getting insights from the usage pattern of our current members, not only to predict member's usage behavior, but also provide better service to enhance loyalty.
 
 ```{r include=FALSE}
-####we impute the outliers with column mean in four continuous variables.
+#### we impute the outliers with column mean in four continuous variables.
 #list the name of numerics
 outvars <- names(df[10:13])
 #find and replace outliers with NA, only deal with temp, atemp, hum and windspeed
@@ -41,7 +40,7 @@ df[missvars] <- data.frame(lapply(df[missvars], function(x) {
 ifelse(is.na(x), mean(x, na.rm = TRUE), x) })) #replace with mean
 ```
 
-#####2.Initial Model and Assumption Analysis
+##### 2.Initial Model and Assumption Analysis
 unmodified regression equation:       
 $$Registered-hat = 761.46+449.44Xseason+ 1754.87Xyear - 23.31Xmnth - 243.16Xholiday+ 42.05Xweekday$$
 $$+950.3Xworkingdays-499.15Xweathersit+ 888.25Xtemp +2611.88Xatemp-607.23Xhum- 1709.1Xwindspeed$$
@@ -57,33 +56,33 @@ As shown in the R-markdown output 2.1, 'weekday' and 'workingday' are generally 
 ```{r include=FALSE}
 crPlots(out)
 ```
-#####2.2.Independence of Errors and Constant Variance
+##### 2.2.Independence of Errors and Constant Variance
 The p-value is 0, we fail to reject the null hypothesis that there is no autocorrelation. In other words, these errors appear independent.
 ```{r include=FALSE}
 durbinWatsonTest(out)
 ```
 
 
-#####2.3.Multicollinearity
+##### 2.3.Multicollinearity
 The output in R-markdown 2.3 shows the multicollinearity analysis of each pair of variables. From this result, we found that 'temp' and 'atemp' are perfectly positively related to each other(coefficient: 0.99). In this case, we will use R-square function to delete either in the model modification stage later.
 ```{r include=FALSE}
 df_for_matrix <- df[, c(3:13,15)]
 rcorr(as.matrix(df_for_matrix))
 ```
 
-#####2.4.Normality
+##### 2.4.Normality
 We visualize the normality of the residual. It seems there are significant number of residuals falls out of the normality range. The residuals are not normaily distributed.
 ```{r include=FALSE}
  qqPlot(out)
 ```
-#####2.5.Outliers
+##### 2.5.Outliers
 Fitted & Residual plot:As shown in the plot, the residuals are randomly distributed around 0, indicating that the model fits the data relatively well and a linear model can fit this data even though at the end of the chart the variances become larger.
 ```{r include=FALSE}
 plot(out, which = 1)
 ```
 
 
-#####2.boxplot analysis
+##### 2.boxplot analysis
 ```{r echo = FALSE, message=FALSE, fig.width=5.5, fig.height=5, fig.align="center"}
 par(mfrow=c(3,3)) 
 boxplot(registered~season,data=df, 
@@ -102,15 +101,15 @@ boxplot(registered~weathersit,data=df,
    xlab="Weathersit", ylab="No. of registered user",names=c("Clear","Mist+Cloudy","Light Snow"))
 ```
 
-######Season: It seems there are less people using rental bikes in spring compared to other three seasons.
-######Year: The second year's usage is significantly better than the first year.
-######Months: The usage started with low in the first quarter. It growed repidly in summer and after it reached a peak in Sept, before going down.
-######Holiday: Non-holiday had higher usage than holiday.
-######Weekday: It seems there is no appearent conclusion can be drawn from weekday boxplot. 
-######Working day: People rented bikes more frequently during working day compare to the non-working day. 
-######Weathersit: The number of registered user in clear days is higher than that of cloudy days and the days with light snow. People tend to ride bikes more under better weather condition.
+###### Season: It seems there are less people using rental bikes in spring compared to other three seasons.
+###### Year: The second year's usage is significantly better than the first year.
+###### Months: The usage started with low in the first quarter. It growed repidly in summer and after it reached a peak in Sept, before going down.
+###### Holiday: Non-holiday had higher usage than holiday.
+###### Weekday: It seems there is no appearent conclusion can be drawn from weekday boxplot. 
+###### Working day: People rented bikes more frequently during working day compare to the non-working day. 
+###### Weathersit: The number of registered user in clear days is higher than that of cloudy days and the days with light snow. People tend to ride bikes more under better weather condition.
 
-#####3.Model modification
+##### 3.Model modification
 
 In this part, we will use Multicollinearity analysis in 2.3 and R-Squared index to make decisions of eliminating redundant variables and adding dummies. as shown in the output 2.3, 'temp' and 'atemp' are perfectly positively related to each other(coefficient 0.99). Similarly, season and month also shares high positive linear relationship. Additionally, the negative relationship between workingday and holiday is also significant. 
 Based on these data, we used R-squared analysis to help us make decisions. We found that the model without temp/month/holiday have larger R-Squared than the model without atemp/season/working day do. So we keep atemp rather than temp, season rather than month, working day rather than holiday.
@@ -207,7 +206,7 @@ summary(out_new_now5)$r.squared
 
 
 
-#####4.Modified regression model
+##### 4.Modified regression model
 $$Registered-hat = 1000.49 + 1716.51*Xyear + 958.53*Xworking day + 3747.31*Xatemp - 1565.24*Xhum$$
 $$- 1900.12*Xwindspeed + 799.86*Xsummer +803.03*Xfall + 1377.17*Xwinter -1283.27*Xsnow/rain$$
 
@@ -228,7 +227,7 @@ crPlots(out_newreg)
 ```
 
 ```{r include=FALSE}
-###4.2.Independence of Errors and Constant Variance
+### 4.2.Independence of Errors and Constant Variance
 durbinWatsonTest(out_newreg)
 ##The D-W statistic is close to 2, and the correlation between errors is
 #around .1
@@ -270,23 +269,23 @@ qqPlot(windspeed_norm)
 ###4.5.Outliers
 plot(out_newreg, which = 1)
 ```
-####5. Insights and Recommendations
-######1)
-######Interpretation: Our new regression model gives us a guideline for predicting member bike using demand for any given day if we know the information regarding year (if it's year 2013, then input 2 for year, 3 for 2014...), imput 1 for working day, feeling temperature, humidity, wind speed, input 1 under respective season, 0 otherwise(spring becomes baseline after imputing dummy variable) and lastly if it's rainy or snowy(weathersit 3), input 1.
-######Insight: Member demand prediction. We can have a better idea of registered members for any given day if given the above mentioned information, which can help us allocate enough bikes for any given day or plan our bike maintenance on the days when the demand is low.
+#### 5. Insights and Recommendations
+###### 1)
+###### Interpretation: Our new regression model gives us a guideline for predicting member bike using demand for any given day if we know the information regarding year (if it's year 2013, then input 2 for year, 3 for 2014...), imput 1 for working day, feeling temperature, humidity, wind speed, input 1 under respective season, 0 otherwise(spring becomes baseline after imputing dummy variable) and lastly if it's rainy or snowy(weathersit 3), input 1.
+###### Insight: Member demand prediction. We can have a better idea of registered members for any given day if given the above mentioned information, which can help us allocate enough bikes for any given day or plan our bike maintenance on the days when the demand is low.
 
-######2)
-######Insight: Registered members tend to use bikes on working days. Probably the main purpose for members to use the service is commuting to work or to school. 
-######Recommendation: Cross industry alliance. Since we target at commuters and students, we can work with companies and schools by providing promotion code. 
+###### 2)
+###### Insight: Registered members tend to use bikes on working days. Probably the main purpose for members to use the service is commuting to work or to school. 
+###### Recommendation: Cross industry alliance. Since we target at commuters and students, we can work with companies and schools by providing promotion code. 
 Identifying office/residential areas with high demand. In order to improve our member's experience, we need to allocate enough bikes in CBD or using heat map to find the most popular office areas that have a lot of demand for bike service. In this case, we want to make sure in those areas we have enough bikes especially at peak hour. 
 
-######3)
-######Insight: From the regression model analysis(See R-markdown code 4.1) , we can find that year, workingday, atemp, hum, windspeed, summer, fall, winter, snow_rain all have low P-values, meaning they all have significant impact on the use of bike sharing services. Among those, hum, windspeed, snow_rain have a negative relationship, meaning when weather is bad, registered members tend to use bikes less. Also when atemp is higher, meaning when the feeling temperature is agreeable, our members' use of bikes sharing service increases.
-######Recommendation: Dynamic pricing. We can utilize the new regression model to set dynamic pricing strategy (like Uber) based on wind speed, humidity and snow. For example, if it is windy today, we can do some pricing discounts since the demand will decrease when the weather situation is not ideal. In addition, if the weather is really nices today and the demand is expected to go up, we can increase the price.
+###### 3)
+###### Insight: From the regression model analysis(See R-markdown code 4.1) , we can find that year, workingday, atemp, hum, windspeed, summer, fall, winter, snow_rain all have low P-values, meaning they all have significant impact on the use of bike sharing services. Among those, hum, windspeed, snow_rain have a negative relationship, meaning when weather is bad, registered members tend to use bikes less. Also when atemp is higher, meaning when the feeling temperature is agreeable, our members' use of bikes sharing service increases.
+###### Recommendation: Dynamic pricing. We can utilize the new regression model to set dynamic pricing strategy (like Uber) based on wind speed, humidity and snow. For example, if it is windy today, we can do some pricing discounts since the demand will decrease when the weather situation is not ideal. In addition, if the weather is really nices today and the demand is expected to go up, we can increase the price.
 
-######4)
-######Insight: The coefficient for year is really high, meaning registered members' demand for our bike sharing service has increased over the past two years, which can be explained by the fact that the number of members has increased as our service grow. 
-######Recommendation: Keeping up with bike supply and maintenance. The overall picture is optimistic for our company since demand and registered members have experienced significant growth as people become more aware of the benefit of biking not only for the environment but also for their health. In this sense, when it comes to future bike demand prediction, there will be more registered members and more demand for bike service. In order to fully satisfy our member's need------to supply enough bikes that are in good condition to make sure our members have a great experience when using our bikes and won't switch to our competitors, we can order more bikes in advance and expand bike maintenance capacity as demand is expected to go up in the future. We also need make sure our service will keep up with the growth rate.
+###### 4)
+###### Insight: The coefficient for year is really high, meaning registered members' demand for our bike sharing service has increased over the past two years, which can be explained by the fact that the number of members has increased as our service grow. 
+###### Recommendation: Keeping up with bike supply and maintenance. The overall picture is optimistic for our company since demand and registered members have experienced significant growth as people become more aware of the benefit of biking not only for the environment but also for their health. In this sense, when it comes to future bike demand prediction, there will be more registered members and more demand for bike service. In order to fully satisfy our member's need------to supply enough bikes that are in good condition to make sure our members have a great experience when using our bikes and won't switch to our competitors, we can order more bikes in advance and expand bike maintenance capacity as demand is expected to go up in the future. We also need make sure our service will keep up with the growth rate.
 ```{r, echo = FALSE}
 knitr::opts_chunk$set(
   fig.path = "README_figs/README-"
