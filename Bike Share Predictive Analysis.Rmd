@@ -1,5 +1,6 @@
 ---
-title: "Bike Share Predictive Analysis"
+title: "APA Homework 1"
+author: "Chen Jiang, Sandy Xie, Huizi Deng, Helen Wang, Zhiying He"
 output:
   pdf_document: default
   html_document:
@@ -11,6 +12,7 @@ geometry: left=1.9cm,right=1.9cm,top=1.5cm,bottom=1.5cm
 knitr::opts_chunk$set(echo = F,
                       results = "hide")
 ```
+
 
 ```{r include=FALSE}
 library(Hmisc)
@@ -293,5 +295,10 @@ Identifying office/residential areas with high demand. In order to improve our m
 ######4)
 ######Insight: The coefficient for year is really high, meaning registered members' demand for our bike sharing service has increased over the past two years, which can be explained by the fact that the number of members has increased as our service grow. 
 ######Recommendation: Keeping up with bike supply and maintenance. The overall picture is optimistic for our company since demand and registered members have experienced significant growth as people become more aware of the benefit of biking not only for the environment but also for their health. In this sense, when it comes to future bike demand prediction, there will be more registered members and more demand for bike service. In order to fully satisfy our member's need------to supply enough bikes that are in good condition to make sure our members have a great experience when using our bikes and won't switch to our competitors, we can order more bikes in advance and expand bike maintenance capacity as demand is expected to go up in the future. We also need make sure our service will keep up with the growth rate.
+```{r, echo = FALSE}
+knitr::opts_chunk$set(
+  fig.path = "README_figs/README-"
+)
+```
 
 
