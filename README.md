@@ -1,6 +1,6 @@
 # Bike-Share-Predictive-Analysis
 
-#####Project Overview:
+####Project Overview:
 To make comprehensive bike usage predictions, generally we took five steps to complete our regression analysis: 
 1) Clean data. 
 2) Analyze the validity of the initial regression model by reflecting on five major assumptions. 
