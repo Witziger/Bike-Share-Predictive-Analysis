@@ -1,12 +1,4 @@
----
-title: "APA Homework 1"
-author: "Chen Jiang, Sandy Xie, Huizi Deng, Helen Wang, Zhiying He"
-output:
-  pdf_document: default
-  html_document:
-    df_print: paged
-geometry: left=1.9cm,right=1.9cm,top=1.5cm,bottom=1.5cm
----
+
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = F,
