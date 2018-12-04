@@ -1,0 +1,298 @@
+---
+title: "APA Homework 1"
+author: "Chen Jiang, Sandy Xie, Huizi Deng, Helen Wang, Zhiying He"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+geometry: left=1.9cm,right=1.9cm,top=1.5cm,bottom=1.5cm
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = F,
+                      results = "hide")
+```
+
+```{r include=FALSE}
+library(Hmisc)
+library(broom)
+library(car)
+library(dplyr)
+```
+
+```{r include=FALSE}
+df <- read.csv(file.choose())
+```
+#####Project Overview:
+To make comprehensive bike usage predictions, generally we took five steps to complete our regression analysis: 
+1) Clean data. 
+2) Analyze the validity of the initial regression model by reflecting on five major assumptions. 
+3) Use boxplot of each discrete variables to illustrate the usage patterns. 
+4) With respect to the Multicollinearity analysis in step 2 and R-squared analysis, we eliminate some redundant variables and add dummy into the model to generalize a sophisticated regression model for usage prediction. 
+5) Based on the new regression model, we intepret the coefficient in the regression model and give some recommendations. 
+For the purpose of concision, we hide the output chart in this report. The chart can be shown by deleting 'include=FALSE' at the beginning of every R chunk.
+
+#####1.Clean the data
+We calculate correlation between working days and the count of registered users and total users for two reasons:   1) there is a strong positive correlation between working day and count of registered users, whereas the correlation of working day and count of total is insignificant. In this case, to make full use of the variables and make more accurate predictions, we select count of registered users as our dependent variables. 2) for the business purpose, we focused on getting insights from the usage pattern of our current members, not only to predict member's usage behavior, but also provide better service to enhance loyalty.
+
+```{r include=FALSE}
+####we impute the outliers with column mean in four continuous variables.
+#list the name of numerics
+outvars <- names(df[10:13])
+#find and replace outliers with NA, only deal with temp, atemp, hum and windspeed
+df[outvars] <- data.frame(lapply(df[outvars], function(x) {
+ifelse((x<0)|x>(mean(x, na.rm = TRUE)+3*sd(x, na.rm = TRUE)), NA, x) }))
+head(df[outvars])
+missvars <- colnames(df)[colSums(is.na(df)) > 0] #find NA
+df[missvars] <- data.frame(lapply(df[missvars], function(x) {
+ifelse(is.na(x), mean(x, na.rm = TRUE), x) })) #replace with mean
+```
+
+#####2.Initial Model and Assumption Analysis
+unmodified regression equation:       
+$$Registered-hat = 761.46+449.44Xseason+ 1754.87Xyear - 23.31Xmnth - 243.16Xholiday+ 42.05Xweekday$$
+$$+950.3Xworkingdays-499.15Xweathersit+ 888.25Xtemp +2611.88Xatemp-607.23Xhum- 1709.1Xwindspeed$$
+```{r echo = FALSE, results='hide',message=FALSE}
+out = lm(registered ~ season + yr + mnth + holiday + weekday + workingday + 
+            weathersit + temp + atemp + hum + windspeed,data = df)
+summary(out)
+summary(out)$r.squared
+coef(out)
+```
+#####2.1.linearity assumption
+As shown in the R-markdown output 2.1, 'weekday' and 'workingday' are generally linearly related to count of registered users.
+```{r include=FALSE}
+crPlots(out)
+```
+#####2.2.Independence of Errors and Constant Variance
+The p-value is 0, we fail to reject the null hypothesis that there is no autocorrelation. In other words, these errors appear independent.
+```{r include=FALSE}
+durbinWatsonTest(out)
+```
+
+
+#####2.3.Multicollinearity
+The output in R-markdown 2.3 shows the multicollinearity analysis of each pair of variables. From this result, we found that 'temp' and 'atemp' are perfectly positively related to each other(coefficient: 0.99). In this case, we will use R-square function to delete either in the model modification stage later.
+```{r include=FALSE}
+df_for_matrix <- df[, c(3:13,15)]
+rcorr(as.matrix(df_for_matrix))
+```
+
+#####2.4.Normality
+We visualize the normality of the residual. It seems there are significant number of residuals falls out of the normality range. The residuals are not normaily distributed.
+```{r include=FALSE}
+ qqPlot(out)
+```
+#####2.5.Outliers
+Fitted & Residual plot:As shown in the plot, the residuals are randomly distributed around 0, indicating that the model fits the data relatively well and a linear model can fit this data even though at the end of the chart the variances become larger.
+```{r include=FALSE}
+plot(out, which = 1)
+```
+
+
+#####2.boxplot analysis
+```{r echo = FALSE, message=FALSE, fig.width=5.5, fig.height=5, fig.align="center"}
+par(mfrow=c(3,3)) 
+boxplot(registered~season,data=df, 
+   xlab="Season", ylab="No. of registered user",names=c("Spr.","Sum.","Fal.","Win."))
+boxplot(registered~yr,data=df, 
+   xlab="Year", ylab="No. of registered user")
+boxplot(registered~mnth,data=df, 
+   xlab="Month", ylab="No. of registered user")
+boxplot(registered~holiday,data=df, 
+   xlab="Holiday", ylab="No. of registered user",names=c("Not holiday","Holiday"))
+boxplot(registered~weekday,data=df, 
+   xlab="Weekday", ylab="No. of registered user",names=c("Sun","Mon","Tues","Wed","Thur","Fri","Sat"))
+boxplot(registered~workingday,data=df, 
+   xlab="Workingday", ylab="No. of registered user",names=c("Not workingday","Workingday"))
+boxplot(registered~weathersit,data=df, 
+   xlab="Weathersit", ylab="No. of registered user",names=c("Clear","Mist+Cloudy","Light Snow"))
+```
+
+######Season: It seems there are less people using rental bikes in spring compared to other three seasons.
+######Year: The second year's usage is significantly better than the first year.
+######Months: The usage started with low in the first quarter. It growed repidly in summer and after it reached a peak in Sept, before going down.
+######Holiday: Non-holiday had higher usage than holiday.
+######Weekday: It seems there is no appearent conclusion can be drawn from weekday boxplot. 
+######Working day: People rented bikes more frequently during working day compare to the non-working day. 
+######Weathersit: The number of registered user in clear days is higher than that of cloudy days and the days with light snow. People tend to ride bikes more under better weather condition.
+
+#####3.Model modification
+
+In this part, we will use Multicollinearity analysis in 2.3 and R-Squared index to make decisions of eliminating redundant variables and adding dummies. as shown in the output 2.3, 'temp' and 'atemp' are perfectly positively related to each other(coefficient 0.99). Similarly, season and month also shares high positive linear relationship. Additionally, the negative relationship between workingday and holiday is also significant. 
+Based on these data, we used R-squared analysis to help us make decisions. We found that the model without temp/month/holiday have larger R-Squared than the model without atemp/season/working day do. So we keep atemp rather than temp, season rather than month, working day rather than holiday.
+Also, "Atemp" refers to feeling temperature which is more significant in terms of business perspective. Working day provides the information of holiday and weekdays. So the modification make sense.
+As for the dummy variables, we use Spring as the baseline of season. And we use both the weather situation 1 and 2 as the baseline since they have multicollinearity and the situation are similar.
+
+```{r include=FALSE}
+##holiday or workingday
+out_noholiday = lm(registered ~ season + yr + mnth + weekday + workingday + 
+            weathersit + temp + atemp + hum + windspeed,data = df)
+summary(out_noholiday)$r.squared
+
+out_noworkingday = lm(registered ~ season + yr + mnth + holiday + weekday+ 
+            weathersit + temp + atemp + hum + windspeed,data = df)
+summary(out_noworkingday)$r.squared
+```
+```{r include=FALSE}
+##temp or atemp
+out_noatemp = lm(registered ~ season + yr + mnth + holiday + weekday + workingday + 
+            weathersit + temp  + hum + windspeed,data = df)
+summary(out_noatemp)$r.squared
+
+out_notemp = lm(registered ~ season + yr + mnth + holiday + weekday + workingday + 
+            weathersit  + atemp + hum + windspeed,data = df)
+summary(out_notemp)$r.squared
+```
+
+
+```{r include=FALSE}
+##season or month
+out_noseason = lm(registered ~ yr + mnth + holiday + weekday + workingday + 
+            weathersit + temp + atemp + hum + windspeed,data = df)
+summary(out_noseason)$r.squared
+
+out_nomonth = lm(registered ~ season + yr + holiday + weekday + workingday + 
+            weathersit + temp + atemp + hum + windspeed,data = df)
+summary(out_nomonth)$r.squared
+```
+
+
+```{r include=FALSE}
+##dummy
+library(fastDummies)
+# Removes the first dummy from every category. Avoids perfect
+# multicollinearity issues in models.
+df_dummy<-dummy_cols(df, select_columns = c('weekday', 'mnth', 'season', 'weathersit'), remove_first_dummy = TRUE)
+```
+
+```{r include=FALSE}
+## regression after having dummy value
+out_new = lm(registered ~ yr + weekday + workingday + 
+            weathersit + atemp + hum + windspeed + weekday_0  + weekday_1 + weekday_2 + weekday_3 +weekday_4 + weekday_5 + season_2 + season_3 + season_4 + weathersit_1 + weathersit_3,data = df_dummy)
+
+summary(out_new)
+coef(out_new)
+```
+
+```{r include=FALSE}
+##calculate r squared for some var.
+##weathersit1/3
+out_new_no1 = lm(registered ~ yr + weekday + workingday + 
+            weathersit + atemp + hum + windspeed + weekday_0  + weekday_1 + weekday_2 + weekday_3 +weekday_4 + weekday_5 + season_2 + season_3 + season_4 +  weathersit_3,data = df_dummy)
+summary(out_new_no1)$r.squared
+
+out_new_no3 = lm(registered ~ yr + weekday + workingday + 
+            weathersit + atemp + hum + windspeed + weekday_0  + weekday_1 + weekday_2 + weekday_3 +weekday_4 + weekday_5 + season_2 + season_3 + season_4 + weathersit_1,data = df_dummy)
+summary(out_new_no3)$r.squared
+###same r squared, and because the description of weathersit1 and 2 is similiar, so we remove the weathersit1
+```
+
+```{r}
+##remove the weekday1/2/3/4/5 to calculate the r squared
+out_new_now1 = lm(registered ~ yr + weekday + workingday + 
+            weathersit + atemp + hum + windspeed + weekday_0  +  weekday_2 + weekday_3 +weekday_4 + weekday_5 + season_2 + season_3 + season_4 +  weathersit_1 + weathersit_3,data = df_dummy)
+summary(out_new_now1)$r.squared
+
+out_new_now2 = lm(registered ~ yr + weekday + workingday + 
+            weathersit + atemp + hum + windspeed + weekday_0  + weekday_1 + weekday_3 +weekday_4 + weekday_5 + season_2 + season_3 + season_4 +  weathersit_1 + weathersit_3,data = df_dummy)
+summary(out_new_now2)$r.squared
+
+out_new_now3 = lm(registered ~ yr + weekday + workingday + 
+            weathersit + atemp + hum + windspeed + weekday_0  + weekday_1 + weekday_2 +weekday_4 + weekday_5 + season_2 + season_3 + season_4 +  weathersit_1 + weathersit_3,data = df_dummy)
+summary(out_new_now3)$r.squared
+
+out_new_now4 = lm(registered ~ yr + weekday + workingday + 
+            weathersit + atemp + hum + windspeed + weekday_0  + weekday_1 + weekday_2 + weekday_3 +weekday_5 + season_2 + season_3 + season_4 +  weathersit_1 + weathersit_3,data = df_dummy)
+summary(out_new_now4)$r.squared
+
+out_new_now5 = lm(registered ~ yr + weekday + workingday + 
+            weathersit + atemp + hum + windspeed + weekday_0  + weekday_1 + weekday_2 + weekday_3 +weekday_4 + season_2 + season_3 + season_4 +  weathersit_1 + weathersit_3,data = df_dummy)
+summary(out_new_now5)$r.squared
+###same r squared, so we remove the weekday_0, use the saturday and sunday as the baseline.
+```
+
+
+
+#####4.Modified regression model
+$$Registered-hat = 1000.49 + 1716.51*Xyear + 958.53*Xworking day + 3747.31*Xatemp - 1565.24*Xhum$$
+$$- 1900.12*Xwindspeed + 799.86*Xsummer +803.03*Xfall + 1377.17*Xwinter -1283.27*Xsnow/rain$$
+
+```{r include=FALSE}
+###4.1 1liner regression
+names(df_dummy)[names(df_dummy) == 'season_2'] <- 'summer'
+names(df_dummy)[names(df_dummy) == 'season_3'] <- 'fall'
+names(df_dummy)[names(df_dummy) == 'season_4'] <- 'winter'
+names(df_dummy)[names(df_dummy) == 'weathersit_3'] <- 'snow_rain'
+out_newreg = lm(registered ~ yr + workingday + atemp + hum + windspeed + summer + fall + winter + snow_rain,data = df_dummy)
+summary(out_newreg)
+summary(out_newreg)$r.squared
+coef(out_newreg)
+```
+
+```{r include=FALSE}
+crPlots(out_newreg)
+```
+
+```{r include=FALSE}
+###4.2.Independence of Errors and Constant Variance
+durbinWatsonTest(out_newreg)
+##The D-W statistic is close to 2, and the correlation between errors is
+#around .1
+#Given the p-value, we fail to reject the null hypothesis that there is
+#no autocorrelation (that is, p-value = 0 cannot be rejected)
+#In other words, these errors appear independent 
+```
+
+```{r include=FALSE}
+###4.3.Multicollinearity
+vif(out_newreg)
+df_for_matrix_1 <- df_dummy[, c(4,8:9,11:13,34:36,38)]
+rcorr(as.matrix(df_for_matrix_1))
+##-Temp and Atemp both have high VIF, we choose to remove the one of them based on the r.squared
+##-VIF greater than 1, the predictors may be moderately correlated
+##-VIF between 5-10 shows high correlation that may be problematic
+##-VIF above 10, we can assume that the regression coefficients are poorly estimated due to multicollinearity.
+```
+
+```{r include=FALSE}
+###4.4.Normality
+## qqplot for normality of temp (actual temperature)```{r}
+temp_norm= lm(registered ~ temp, df_dummy)
+qqPlot(temp_norm)
+## qqplot for normality of atemp (feeling temperature)
+atemp_norm= lm(registered ~ atemp, df_dummy)
+qqPlot(atemp_norm)
+## qqplot for normality of hum```{r}
+hum_norm = lm(registered ~ hum, df_dummy)
+qqPlot(hum_norm)
+## qqplot for normality of windspeed```{r}
+windspeed_norm = lm(registered ~ windspeed, df_dummy)
+qqPlot(windspeed_norm)
+#Based on the graphs generated for 4 variables "temp," "atemp," "hum," "windspeed", we can find that the normality plot of temp (actual temperature) and atemp (feeling temperature) are normally distributed as the spots are more concentrated than theoretical distribution would suppose in that section of a plot. The plots of "hum" and "windspeed" are light-tailed as less concentrated points increase more and more concentrated points than supposed increases less rapidly than an overall linear relation would suggest.
+```
+
+
+```{r include=FALSE}
+###4.5.Outliers
+plot(out_newreg, which = 1)
+```
+####5. Insights and Recommendations
+######1)
+######Interpretation: Our new regression model gives us a guideline for predicting member bike using demand for any given day if we know the information regarding year (if it's year 2013, then input 2 for year, 3 for 2014...), imput 1 for working day, feeling temperature, humidity, wind speed, input 1 under respective season, 0 otherwise(spring becomes baseline after imputing dummy variable) and lastly if it's rainy or snowy(weathersit 3), input 1.
+######Insight: Member demand prediction. We can have a better idea of registered members for any given day if given the above mentioned information, which can help us allocate enough bikes for any given day or plan our bike maintenance on the days when the demand is low.
+
+######2)
+######Insight: Registered members tend to use bikes on working days. Probably the main purpose for members to use the service is commuting to work or to school. 
+######Recommendation: Cross industry alliance. Since we target at commuters and students, we can work with companies and schools by providing promotion code. 
+Identifying office/residential areas with high demand. In order to improve our member's experience, we need to allocate enough bikes in CBD or using heat map to find the most popular office areas that have a lot of demand for bike service. In this case, we want to make sure in those areas we have enough bikes especially at peak hour. 
+
+######3)
+######Insight: From the regression model analysis(See R-markdown code 4.1) , we can find that year, workingday, atemp, hum, windspeed, summer, fall, winter, snow_rain all have low P-values, meaning they all have significant impact on the use of bike sharing services. Among those, hum, windspeed, snow_rain have a negative relationship, meaning when weather is bad, registered members tend to use bikes less. Also when atemp is higher, meaning when the feeling temperature is agreeable, our members' use of bikes sharing service increases.
+######Recommendation: Dynamic pricing. We can utilize the new regression model to set dynamic pricing strategy (like Uber) based on wind speed, humidity and snow. For example, if it is windy today, we can do some pricing discounts since the demand will decrease when the weather situation is not ideal. In addition, if the weather is really nices today and the demand is expected to go up, we can increase the price.
+
+######4)
+######Insight: The coefficient for year is really high, meaning registered members' demand for our bike sharing service has increased over the past two years, which can be explained by the fact that the number of members has increased as our service grow. 
+######Recommendation: Keeping up with bike supply and maintenance. The overall picture is optimistic for our company since demand and registered members have experienced significant growth as people become more aware of the benefit of biking not only for the environment but also for their health. In this sense, when it comes to future bike demand prediction, there will be more registered members and more demand for bike service. In order to fully satisfy our member's need------to supply enough bikes that are in good condition to make sure our members have a great experience when using our bikes and won't switch to our competitors, we can order more bikes in advance and expand bike maintenance capacity as demand is expected to go up in the future. We also need make sure our service will keep up with the growth rate.
+
+
