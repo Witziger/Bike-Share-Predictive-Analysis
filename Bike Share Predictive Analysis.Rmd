@@ -1,6 +1,5 @@
 ---
-title: "APA Homework 1"
-author: "Chen Jiang, Sandy Xie, Huizi Deng, Helen Wang, Zhiying He"
+title: "Bike Share Predictive Analysis"
 output:
   pdf_document: default
   html_document:
